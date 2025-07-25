@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.models.user import db
+from src.models.platform import Platform
+from src.models.vendor import Vendor
 from src.models.category import Category
 from src.models.subcategory import Subcategory
 from src.models.product import Product
@@ -18,6 +20,8 @@ from src.routes.subcategories import subcategories_bp
 from src.routes.products import products_bp
 from src.routes.orders import orders_bp
 from src.routes.admin import admin_bp
+from src.routes.vendors import vendors_bp
+from src.routes.platforms import platforms_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
@@ -32,6 +36,8 @@ app.register_blueprint(subcategories_bp, url_prefix='/api')
 app.register_blueprint(products_bp, url_prefix='/api')
 app.register_blueprint(orders_bp, url_prefix='/api')
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
+app.register_blueprint(vendors_bp, url_prefix='/api')
+app.register_blueprint(platforms_bp, url_prefix='/api')
 
 # Database configuration
 database_url = os.environ.get("DATABASE_URL")
@@ -47,50 +53,46 @@ def seed_initial_data():
     """Seed initial data for testing"""
     with app.app_context():
         # Check if data already exists
-        if Category.query.count() == 0:
-            # Create sample categories
-            facebook_cat = Category(name="Facebook Accounts", slug="facebook-accounts", description="High-quality Facebook accounts")
-            instagram_cat = Category(name="Instagram Accounts", slug="instagram-accounts", description="Premium Instagram accounts")
+        if Platform.query.count() == 0:
+            # Create sample platforms
+            facebook_platform = Platform(platform_name="Facebook")
+            instagram_platform = Platform(platform_name="Instagram")
             
-            db.session.add(facebook_cat)
-            db.session.add(instagram_cat)
+            db.session.add(facebook_platform)
+            db.session.add(instagram_platform)
             db.session.flush()
             
-            # Create subcategories
-            fb_softreg = Category(name="Facebook Softregs", slug="facebook-softregs", parent_id=facebook_cat.id)
-            fb_friends = Category(name="Facebook With Friends", slug="facebook-with-friends", parent_id=facebook_cat.id)
-            ig_softreg = Category(name="Instagram Softreg", slug="instagram-softreg", parent_id=instagram_cat.id)
-            ig_aged = Category(name="Instagram Aged", slug="instagram-aged", parent_id=instagram_cat.id)
+            # Create sample vendors
+            vendor1 = Vendor(vendor_name="Premium Accounts Co", contact_info="contact@premiumaccs.com")
+            vendor2 = Vendor(vendor_name="Social Media Hub", contact_info="info@socialmediahub.com")
             
-            db.session.add(fb_softreg)
-            db.session.add(fb_friends)
-            db.session.add(ig_softreg)
-            db.session.add(ig_aged)
+            db.session.add(vendor1)
+            db.session.add(vendor2)
+            db.session.flush()
+            
+            # Create categories
+            fb_category = Category(platform_id=facebook_platform.platform_id, category_name="Facebook Accounts")
+            ig_category = Category(platform_id=instagram_platform.platform_id, category_name="Instagram Accounts")
+            
+            db.session.add(fb_category)
+            db.session.add(ig_category)
             db.session.flush()
             
             # Create sample products
             products = [
                 Product(
-                    category_id=fb_softreg.id,
-                    title="FB Accounts | Verified by e-mail, there is no email in the set. Male or female. The account profiles may be empty or have limited entries such as photos and other information. 2FA included. Cookies are included. Accounts are registered in United Kingdom IP.",
-                    description="High quality Facebook accounts verified by email",
-                    price=0.278,
-                    stock_quantity=345,
-                    rating=4.6,
-                    total_reviews=89,
-                    account_type="Facebook Softreg",
-                    is_active=True
+                    category_id=fb_category.category_id,
+                    vendor_id=vendor1.vendor_id,
+                    name="FB Accounts | Verified by e-mail, there is no email in the set. Male or female. The account profiles may be empty or have limited entries such as photos and other information. 2FA included. Cookies are included. Accounts are registered in United Kingdom IP.",
+                    quantity=345,
+                    price_per_pc=0.278
                 ),
                 Product(
-                    category_id=ig_softreg.id,
-                    title="IG Accounts | Verified by email, email NOT included. Male or female. The profiles information is partially filled. 2FA included. UserAgent, cookies included. Registered from USA IP.",
-                    description="Instagram soft registered accounts from USA",
-                    price=0.183,
-                    stock_quantity=99,
-                    rating=4.9,
-                    total_reviews=156,
-                    account_type="Instagram Softreg",
-                    is_active=True
+                    category_id=ig_category.category_id,
+                    vendor_id=vendor2.vendor_id,
+                    name="IG Accounts | Verified by email, email NOT included. Male or female. The profiles information is partially filled. 2FA included. UserAgent, cookies included. Registered from USA IP.",
+                    quantity=99,
+                    price_per_pc=0.183
                 )
             ]
             

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from src.models.user import db
 from src.models.product import Product
 from src.models.category import Category
+from src.models.vendor import Vendor
 
 products_bp = Blueprint('products', __name__)
 
@@ -11,8 +12,7 @@ def get_products():
     try:
         # Get query parameters
         category_id = request.args.get('category_id', type=int)
-        is_featured = request.args.get('is_featured', type=bool)
-        is_active = request.args.get('is_active', type=bool, default=True)
+        vendor_id = request.args.get('vendor_id', type=int)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
@@ -21,20 +21,18 @@ def get_products():
         
         if category_id:
             query = query.filter_by(category_id=category_id)
-        if is_featured is not None:
-            query = query.filter_by(is_featured=is_featured)
-        if is_active is not None:
-            query = query.filter_by(is_active=is_active)
+        if vendor_id:
+            query = query.filter_by(vendor_id=vendor_id)
         
-        # Order by featured first, then by rating, then by created_at
-        query = query.order_by(Product.is_featured.desc(), Product.rating.desc(), Product.created_at.desc())
+        # Order by product_id for consistency
+        query = query.order_by(Product.product_id.desc())
         
         # Paginate
         products = query.paginate(page=page, per_page=per_page, error_out=False)
         
         products_data = []
         for product in products.items:
-            products_data.append(product.to_dict())
+            products_data.append(product.to_dict_legacy())
         
         return jsonify({
             'success': True,
@@ -59,10 +57,10 @@ def get_products():
 def get_product(product_id):
     """Get a specific product by ID"""
     try:
-        product = Product.query.get_or_404(product_id)
+        product = Product.query.filter_by(product_id=product_id).first_or_404()
         return jsonify({
             'success': True,
-            'data': product.to_dict(),
+            'data': product.to_dict_legacy(),
             'message': 'Product retrieved successfully'
         })
     except Exception as e:
@@ -78,34 +76,46 @@ def create_product():
         data = request.get_json()
         
         # Validate required fields
-        if not data.get('title') or not data.get('price'):
+        if not data.get('name') or not data.get('price_per_pc'):
             return jsonify({
                 'success': False,
-                'message': 'Title and price are required'
+                'message': 'Name and price_per_pc are required'
             }), 400
         
-        # Validate category exists if provided
-        if data.get('category_id'):
-            category = Category.query.get(data['category_id'])
-            if not category:
-                return jsonify({
-                    'success': False,
-                    'message': 'Category not found'
-                }), 400
+        # Validate category exists
+        if not data.get('category_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Category ID is required'
+            }), 400
+            
+        category = Category.query.filter_by(category_id=data['category_id']).first()
+        if not category:
+            return jsonify({
+                'success': False,
+                'message': 'Category not found'
+            }), 400
+        
+        # Validate vendor exists
+        if not data.get('vendor_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Vendor ID is required'
+            }), 400
+            
+        vendor = Vendor.query.filter_by(vendor_id=data['vendor_id']).first()
+        if not vendor:
+            return jsonify({
+                'success': False,
+                'message': 'Vendor not found'
+            }), 400
         
         product = Product(
-            category_id=data.get('category_id'),
-            seller_id=data.get('seller_id'),
-            title=data['title'],
-            description=data.get('description'),
-            price=data['price'],
-            stock_quantity=data.get('stock_quantity', 0),
-            account_type=data.get('account_type'),
-            account_details=data.get('account_details'),
-            is_active=data.get('is_active', True),
-            is_featured=data.get('is_featured', False),
-            rating=data.get('rating', 0.0),
-            total_reviews=data.get('total_reviews', 0)
+            category_id=data['category_id'],
+            vendor_id=data['vendor_id'],
+            name=data['name'],
+            quantity=data.get('quantity', 0),
+            price_per_pc=data['price_per_pc']
         )
         
         db.session.add(product)
@@ -113,7 +123,7 @@ def create_product():
         
         return jsonify({
             'success': True,
-            'data': product.to_dict(),
+            'data': product.to_dict_legacy(),
             'message': 'Product created successfully'
         }), 201
     except Exception as e:
@@ -127,49 +137,44 @@ def create_product():
 def update_product(product_id):
     """Update a product"""
     try:
-        product = Product.query.get_or_404(product_id)
+        product = Product.query.filter_by(product_id=product_id).first_or_404()
         data = request.get_json()
         
         # Validate category exists if provided
         if data.get('category_id'):
-            category = Category.query.get(data['category_id'])
+            category = Category.query.filter_by(category_id=data['category_id']).first()
             if not category:
                 return jsonify({
                     'success': False,
                     'message': 'Category not found'
                 }), 400
         
+        # Validate vendor exists if provided
+        if data.get('vendor_id'):
+            vendor = Vendor.query.filter_by(vendor_id=data['vendor_id']).first()
+            if not vendor:
+                return jsonify({
+                    'success': False,
+                    'message': 'Vendor not found'
+                }), 400
+        
         # Update fields
         if 'category_id' in data:
             product.category_id = data['category_id']
-        if 'seller_id' in data:
-            product.seller_id = data['seller_id']
-        if 'title' in data:
-            product.title = data['title']
-        if 'description' in data:
-            product.description = data['description']
-        if 'price' in data:
-            product.price = data['price']
-        if 'stock_quantity' in data:
-            product.stock_quantity = data['stock_quantity']
-        if 'account_type' in data:
-            product.account_type = data['account_type']
-        if 'account_details' in data:
-            product.account_details = data['account_details']
-        if 'is_active' in data:
-            product.is_active = data['is_active']
-        if 'is_featured' in data:
-            product.is_featured = data['is_featured']
-        if 'rating' in data:
-            product.rating = data['rating']
-        if 'total_reviews' in data:
-            product.total_reviews = data['total_reviews']
+        if 'vendor_id' in data:
+            product.vendor_id = data['vendor_id']
+        if 'name' in data:
+            product.name = data['name']
+        if 'quantity' in data:
+            product.quantity = data['quantity']
+        if 'price_per_pc' in data:
+            product.price_per_pc = data['price_per_pc']
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'data': product.to_dict(),
+            'data': product.to_dict_legacy(),
             'message': 'Product updated successfully'
         })
     except Exception as e:
@@ -183,14 +188,7 @@ def update_product(product_id):
 def delete_product(product_id):
     """Delete a product"""
     try:
-        product = Product.query.get_or_404(product_id)
-        
-        # Check if product has orders
-        if product.order_items:
-            return jsonify({
-                'success': False,
-                'message': 'Cannot delete product with existing orders'
-            }), 400
+        product = Product.query.filter_by(product_id=product_id).first_or_404()
         
         db.session.delete(product)
         db.session.commit()
@@ -204,26 +202,5 @@ def delete_product(product_id):
         return jsonify({
             'success': False,
             'message': f'Error deleting product: {str(e)}'
-        }), 500
-
-@products_bp.route('/products/featured', methods=['GET'])
-def get_featured_products():
-    """Get featured products"""
-    try:
-        products = Product.query.filter_by(is_featured=True, is_active=True).order_by(Product.rating.desc()).limit(10).all()
-        
-        products_data = []
-        for product in products:
-            products_data.append(product.to_dict())
-        
-        return jsonify({
-            'success': True,
-            'data': products_data,
-            'message': 'Featured products retrieved successfully'
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Error retrieving featured products: {str(e)}'
         }), 500
 

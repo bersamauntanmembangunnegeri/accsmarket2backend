@@ -4,42 +4,44 @@ from datetime import datetime
 class Product(db.Model):
     __tablename__ = 'products'
     
-    id = db.Column(db.Integer, primary_key=True)
-    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
-    seller_id = db.Column(db.Integer, nullable=True)
-    title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-    price = db.Column(db.Numeric(10, 2), nullable=False)
-    stock_quantity = db.Column(db.Integer, default=0)
-    account_type = db.Column(db.String(100))
-    account_details = db.Column(db.JSON)
-    is_active = db.Column(db.Boolean, default=True)
-    is_featured = db.Column(db.Boolean, default=False)
-    rating = db.Column(db.Numeric(3, 2), default=0.0)
-    total_reviews = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    product_id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.category_id'), nullable=False)
+    name = db.Column(db.Text, nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price_per_pc = db.Column(db.Numeric(10, 2), nullable=False)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendors.vendor_id'), nullable=False)
     
     # Relationships
-    category = db.relationship('Category', backref='products')
+    category = db.relationship('Category', back_populates='products')
+    vendor = db.relationship('Vendor', back_populates='products')
     
     def to_dict(self):
         return {
-            'id': self.id,
+            'product_id': self.product_id,
             'category_id': self.category_id,
-            'seller_id': self.seller_id,
-            'title': self.title,
-            'description': self.description,
-            'price': float(self.price) if self.price else 0.0,
-            'stock_quantity': self.stock_quantity,
-            'account_type': self.account_type,
-            'account_details': self.account_details,
-            'is_active': self.is_active,
-            'is_featured': self.is_featured,
-            'rating': float(self.rating) if self.rating else 0.0,
-            'total_reviews': self.total_reviews,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'category': self.category.to_dict() if self.category else None
+            'name': self.name,
+            'quantity': self.quantity,
+            'price_per_pc': float(self.price_per_pc) if self.price_per_pc else 0.0,
+            'vendor_id': self.vendor_id,
+            'category': self.category.to_dict() if self.category else None,
+            'vendor': self.vendor.to_dict() if self.vendor else None
+        }
+    
+    # For backward compatibility with frontend
+    def to_dict_legacy(self):
+        return {
+            'id': self.product_id,
+            'category_id': self.category_id,
+            'title': self.name,
+            'description': f"Product from {self.vendor.vendor_name if self.vendor else 'Unknown Vendor'}",
+            'price': float(self.price_per_pc) if self.price_per_pc else 0.0,
+            'stock_quantity': self.quantity,
+            'account_type': self.category.category_name if self.category else 'Unknown',
+            'is_active': True,
+            'is_featured': False,
+            'rating': 4.5,  # Default rating
+            'total_reviews': 0,
+            'category': self.category.to_dict_legacy() if self.category else None,
+            'vendor': self.vendor.to_dict() if self.vendor else None
         }
 

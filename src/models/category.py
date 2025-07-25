@@ -4,30 +4,33 @@ from datetime import datetime
 class Category(db.Model):
     __tablename__ = 'categories'
     
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    slug = db.Column(db.String(100), unique=True, nullable=False)
-    description = db.Column(db.Text)
-    parent_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
-    is_active = db.Column(db.Boolean, default=True)
-    sort_order = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    category_id = db.Column(db.Integer, primary_key=True)
+    platform_id = db.Column(db.Integer, db.ForeignKey('platforms.platform_id'), nullable=False)
+    category_name = db.Column(db.String(255), nullable=False)
     
     # Relationships
-    parent = db.relationship('Category', remote_side=[id], backref='children')
+    platform = db.relationship('Platform', back_populates='categories')
+    products = db.relationship('Product', back_populates='category')
     
     def to_dict(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'slug': self.slug,
-            'description': self.description,
-            'parent_id': self.parent_id,
-            'is_active': self.is_active,
-            'sort_order': self.sort_order,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'children': [child.to_dict() for child in self.children] if self.children else []
+            'category_id': self.category_id,
+            'platform_id': self.platform_id,
+            'category_name': self.category_name,
+            'platform': self.platform.to_dict() if self.platform else None
+        }
+    
+    # For backward compatibility with frontend
+    def to_dict_legacy(self):
+        return {
+            'id': self.category_id,
+            'name': self.category_name,
+            'slug': self.category_name.lower().replace(' ', '-'),
+            'description': f"Category for {self.platform.platform_name if self.platform else 'Unknown Platform'}",
+            'parent_id': None,
+            'is_active': True,
+            'sort_order': 0,
+            'children': [],
+            'platform': self.platform.to_dict() if self.platform else None
         }
 

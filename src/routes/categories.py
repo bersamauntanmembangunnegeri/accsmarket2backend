@@ -1,19 +1,19 @@
 from flask import Blueprint, request, jsonify
 from src.models.user import db
 from src.models.category import Category
+from src.models.platform import Platform
 
 categories_bp = Blueprint('categories', __name__)
 
 @categories_bp.route('/categories', methods=['GET'])
 def get_categories():
-    """Get all categories with their children"""
+    """Get all categories"""
     try:
-        # Get only parent categories (no parent_id)
-        parent_categories = Category.query.filter_by(parent_id=None, is_active=True).order_by(Category.sort_order, Category.name).all()
+        categories = Category.query.order_by(Category.category_name).all()
         
         categories_data = []
-        for category in parent_categories:
-            categories_data.append(category.to_dict())
+        for category in categories:
+            categories_data.append(category.to_dict_legacy())
         
         return jsonify({
             'success': True,
@@ -30,10 +30,10 @@ def get_categories():
 def get_category(category_id):
     """Get a specific category by ID"""
     try:
-        category = Category.query.get_or_404(category_id)
+        category = Category.query.filter_by(category_id=category_id).first_or_404()
         return jsonify({
             'success': True,
-            'data': category.to_dict(),
+            'data': category.to_dict_legacy(),
             'message': 'Category retrieved successfully'
         })
     except Exception as e:
@@ -49,27 +49,23 @@ def create_category():
         data = request.get_json()
         
         # Validate required fields
-        if not data.get('name') or not data.get('slug'):
+        if not data.get('category_name') or not data.get('platform_id'):
             return jsonify({
                 'success': False,
-                'message': 'Name and slug are required'
+                'message': 'Category name and platform ID are required'
             }), 400
         
-        # Check if slug already exists
-        existing_category = Category.query.filter_by(slug=data['slug']).first()
-        if existing_category:
+        # Validate platform exists
+        platform = Platform.query.filter_by(platform_id=data['platform_id']).first()
+        if not platform:
             return jsonify({
                 'success': False,
-                'message': 'Category with this slug already exists'
+                'message': 'Platform not found'
             }), 400
         
         category = Category(
-            name=data['name'],
-            slug=data['slug'],
-            description=data.get('description'),
-            parent_id=data.get('parent_id'),
-            is_active=data.get('is_active', True),
-            sort_order=data.get('sort_order', 0)
+            platform_id=data['platform_id'],
+            category_name=data['category_name']
         )
         
         db.session.add(category)
@@ -77,7 +73,7 @@ def create_category():
         
         return jsonify({
             'success': True,
-            'data': category.to_dict(),
+            'data': category.to_dict_legacy(),
             'message': 'Category created successfully'
         }), 201
     except Exception as e:
@@ -91,37 +87,29 @@ def create_category():
 def update_category(category_id):
     """Update a category"""
     try:
-        category = Category.query.get_or_404(category_id)
+        category = Category.query.filter_by(category_id=category_id).first_or_404()
         data = request.get_json()
         
-        # Check if slug already exists (excluding current category)
-        if data.get('slug') and data['slug'] != category.slug:
-            existing_category = Category.query.filter_by(slug=data['slug']).first()
-            if existing_category:
+        # Validate platform exists if provided
+        if data.get('platform_id'):
+            platform = Platform.query.filter_by(platform_id=data['platform_id']).first()
+            if not platform:
                 return jsonify({
                     'success': False,
-                    'message': 'Category with this slug already exists'
+                    'message': 'Platform not found'
                 }), 400
         
         # Update fields
-        if 'name' in data:
-            category.name = data['name']
-        if 'slug' in data:
-            category.slug = data['slug']
-        if 'description' in data:
-            category.description = data['description']
-        if 'parent_id' in data:
-            category.parent_id = data['parent_id']
-        if 'is_active' in data:
-            category.is_active = data['is_active']
-        if 'sort_order' in data:
-            category.sort_order = data['sort_order']
+        if 'platform_id' in data:
+            category.platform_id = data['platform_id']
+        if 'category_name' in data:
+            category.category_name = data['category_name']
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'data': category.to_dict(),
+            'data': category.to_dict_legacy(),
             'message': 'Category updated successfully'
         })
     except Exception as e:
@@ -135,14 +123,7 @@ def update_category(category_id):
 def delete_category(category_id):
     """Delete a category"""
     try:
-        category = Category.query.get_or_404(category_id)
-        
-        # Check if category has children
-        if category.children:
-            return jsonify({
-                'success': False,
-                'message': 'Cannot delete category with subcategories'
-            }), 400
+        category = Category.query.filter_by(category_id=category_id).first_or_404()
         
         # Check if category has products
         if category.products:
