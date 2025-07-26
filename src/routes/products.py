@@ -12,6 +12,7 @@ def get_products():
     try:
         # Get query parameters
         category_id = request.args.get('category_id', type=int)
+        subcategory_id = request.args.get('subcategory_id', type=int)
         platform_id = request.args.get('platform_id', type=int)
         vendor_id = request.args.get('vendor_id', type=int)
         min_price = request.args.get('min_price', type=float)
@@ -22,16 +23,24 @@ def get_products():
         vendor_name = request.args.get('vendor', type=str)
         platform_name = request.args.get('platform', type=str)
         category_name = request.args.get('category', type=str)
+        subcategory_name = request.args.get('subcategory', type=str)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
         # Build query with joins for filtering
         from src.models.platform import Platform
+        from src.models.subcategory import Subcategory
         query = Product.query.join(Category).join(Vendor).join(Platform, Category.platform_id == Platform.platform_id)
+        
+        # Left join with subcategory for optional subcategory filtering
+        query = query.outerjoin(Subcategory, Product.subcategory_id == Subcategory.id)
         
         # Apply filters
         if category_id:
             query = query.filter(Product.category_id == category_id)
+        
+        if subcategory_id:
+            query = query.filter(Product.subcategory_id == subcategory_id)
         
         if platform_id:
             query = query.filter(Category.platform_id == platform_id)
@@ -60,6 +69,10 @@ def get_products():
         # Handle category name filtering
         if category_name:
             query = query.filter(Category.category_name == category_name)
+        
+        # Handle subcategory name filtering
+        if subcategory_name:
+            query = query.filter(Subcategory.name == subcategory_name)
         
         if keyword:
             # Search in product name and vendor name

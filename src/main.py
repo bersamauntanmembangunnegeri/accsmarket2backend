@@ -78,10 +78,27 @@ def seed_initial_data():
             db.session.add(ig_category)
             db.session.flush()
             
+            # Create subcategories
+            from src.models.subcategory import Subcategory
+            
+            # Facebook subcategories
+            fb_softreg = Subcategory(name="Softreg", category_id=fb_category.category_id, icon="📧")
+            fb_gmail = Subcategory(name="Gmail", category_id=fb_category.category_id, icon="📬")
+            fb_aged = Subcategory(name="Aged", category_id=fb_category.category_id, icon="⏰")
+            
+            # Instagram subcategories  
+            ig_softreg = Subcategory(name="Softreg", category_id=ig_category.category_id, icon="📧")
+            ig_gmail = Subcategory(name="Gmail", category_id=ig_category.category_id, icon="📬")
+            ig_aged = Subcategory(name="Aged", category_id=ig_category.category_id, icon="⏰")
+            
+            db.session.add_all([fb_softreg, fb_gmail, fb_aged, ig_softreg, ig_gmail, ig_aged])
+            db.session.flush()
+            
             # Create sample products
             products = [
                 Product(
                     category_id=fb_category.category_id,
+                    subcategory_id=fb_softreg.id,
                     vendor_id=vendor1.vendor_id,
                     name="FB Accounts | Verified by e-mail, there is no email in the set. Male or female. The account profiles may be empty or have limited entries such as photos and other information. 2FA included. Cookies are included. Accounts are registered in United Kingdom IP.",
                     quantity=345,
@@ -89,9 +106,26 @@ def seed_initial_data():
                 ),
                 Product(
                     category_id=ig_category.category_id,
+                    subcategory_id=ig_softreg.id,
                     vendor_id=vendor2.vendor_id,
                     name="IG Accounts | Verified by email, email NOT included. Male or female. The profiles information is partially filled. 2FA included. UserAgent, cookies included. Registered from USA IP.",
                     quantity=99,
+                    price_per_pc=0.183
+                ),
+                Product(
+                    category_id=fb_category.category_id,
+                    subcategory_id=fb_gmail.id,
+                    vendor_id=vendor1.vendor_id,
+                    name="Gmail Accounts | Verified by SMS, Phone number not included in Profile Security method. There is an additional email address(without a password). Male or female. Registered from different countries IPs.",
+                    quantity=115,
+                    price_per_pc=0.278
+                ),
+                Product(
+                    category_id=ig_category.category_id,
+                    subcategory_id=ig_gmail.id,
+                    vendor_id=vendor2.vendor_id,
+                    name="Gmail Accounts | Accounts could be used in some services. The accounts are verified through SMS. There is an additional email address(without a password). Male or female. Registered from different countries IPs.",
+                    quantity=404,
                     price_per_pc=0.183
                 )
             ]
