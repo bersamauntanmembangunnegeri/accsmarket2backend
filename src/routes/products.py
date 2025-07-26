@@ -45,27 +45,21 @@ def get_products():
         if max_price is not None:
             query = query.filter(Product.price_per_pc <= max_price)
         
+
         if min_quantity is not None:
             query = query.filter(Product.quantity >= min_quantity)
         
         if max_quantity is not None:
             query = query.filter(Product.quantity <= max_quantity)
         
-        # Handle vendor name filtering
-        vendor_name = request.args.get('vendor', type=str)
         if vendor_name:
-            vendor_filter = f"%{vendor_name}%"
-            query = query.filter(Vendor.vendor_name.ilike(vendor_filter))
-        
-        # Handle platform name filtering
+            query = query.filter(Vendor.vendor_name == vendor_name)
         if platform_name:
-            platform_filter = f"%{platform_name}%"
-            query = query.filter(Platform.platform_name.ilike(platform_filter))
+            query = query.filter(Platform.platform_name == platform_name)
         
         # Handle category name filtering
         if category_name:
-            category_filter = f"%{category_name}%"
-            query = query.filter(Category.category_name.ilike(category_filter))
+            query = query.filter(Category.category_name == category_name)
         
         if keyword:
             # Search in product name and vendor name
