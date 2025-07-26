@@ -9,14 +9,12 @@ from src.models.user import db
 from src.models.platform import Platform
 from src.models.vendor import Vendor
 from src.models.category import Category
-from src.models.subcategory import Subcategory
 from src.models.product import Product
 from src.models.order import Order, OrderItem
 from src.models.settings import SiteSetting, WebsiteLayout
 
 from src.routes.user import user_bp
 from src.routes.categories import categories_bp
-from src.routes.subcategories import subcategories_bp
 from src.routes.products import products_bp
 from src.routes.orders import orders_bp
 from src.routes.admin import admin_bp
@@ -32,7 +30,6 @@ CORS(app, origins="*", allow_headers=["Content-Type", "Authorization"], methods=
 # Register blueprints
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(categories_bp, url_prefix='/api')
-app.register_blueprint(subcategories_bp, url_prefix='/api')
 app.register_blueprint(products_bp, url_prefix='/api')
 app.register_blueprint(orders_bp, url_prefix='/api')
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
