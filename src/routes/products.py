@@ -12,17 +12,50 @@ def get_products():
     try:
         # Get query parameters
         category_id = request.args.get('category_id', type=int)
+        platform_id = request.args.get('platform_id', type=int)
         vendor_id = request.args.get('vendor_id', type=int)
+        min_price = request.args.get('min_price', type=float)
+        max_price = request.args.get('max_price', type=float)
+        min_quantity = request.args.get('min_quantity', type=int)
+        max_quantity = request.args.get('max_quantity', type=int)
+        keyword = request.args.get('keyword', type=str)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
-        # Build query
-        query = Product.query
+        # Build query with joins for filtering
+        query = Product.query.join(Category).join(Vendor)
         
+        # Apply filters
         if category_id:
-            query = query.filter_by(category_id=category_id)
+            query = query.filter(Product.category_id == category_id)
+        
+        if platform_id:
+            query = query.filter(Category.platform_id == platform_id)
+        
         if vendor_id:
-            query = query.filter_by(vendor_id=vendor_id)
+            query = query.filter(Product.vendor_id == vendor_id)
+        
+        if min_price is not None:
+            query = query.filter(Product.price_per_pc >= min_price)
+        
+        if max_price is not None:
+            query = query.filter(Product.price_per_pc <= max_price)
+        
+        if min_quantity is not None:
+            query = query.filter(Product.quantity >= min_quantity)
+        
+        if max_quantity is not None:
+            query = query.filter(Product.quantity <= max_quantity)
+        
+        if keyword:
+            # Search in product name and vendor name
+            keyword_filter = f"%{keyword}%"
+            query = query.filter(
+                db.or_(
+                    Product.name.ilike(keyword_filter),
+                    Vendor.vendor_name.ilike(keyword_filter)
+                )
+            )
         
         # Order by product_id for consistency
         query = query.order_by(Product.product_id.desc())
@@ -44,6 +77,16 @@ def get_products():
                 'total': products.total,
                 'has_next': products.has_next,
                 'has_prev': products.has_prev
+            },
+            'filters_applied': {
+                'category_id': category_id,
+                'platform_id': platform_id,
+                'vendor_id': vendor_id,
+                'min_price': min_price,
+                'max_price': max_price,
+                'min_quantity': min_quantity,
+                'max_quantity': max_quantity,
+                'keyword': keyword
             },
             'message': 'Products retrieved successfully'
         })
