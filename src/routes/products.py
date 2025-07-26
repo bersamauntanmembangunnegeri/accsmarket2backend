@@ -19,11 +19,15 @@ def get_products():
         min_quantity = request.args.get('min_quantity', type=int)
         max_quantity = request.args.get('max_quantity', type=int)
         keyword = request.args.get('keyword', type=str)
+        vendor_name = request.args.get('vendor', type=str)
+        platform_name = request.args.get('platform', type=str)
+        category_name = request.args.get('category', type=str)
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 50, type=int)
         
         # Build query with joins for filtering
-        query = Product.query.join(Category).join(Vendor)
+        from src.models.platform import Platform
+        query = Product.query.join(Category).join(Vendor).join(Platform, Category.platform_id == Platform.platform_id)
         
         # Apply filters
         if category_id:
@@ -46,6 +50,22 @@ def get_products():
         
         if max_quantity is not None:
             query = query.filter(Product.quantity <= max_quantity)
+        
+        # Handle vendor name filtering
+        vendor_name = request.args.get('vendor', type=str)
+        if vendor_name:
+            vendor_filter = f"%{vendor_name}%"
+            query = query.filter(Vendor.vendor_name.ilike(vendor_filter))
+        
+        # Handle platform name filtering
+        if platform_name:
+            platform_filter = f"%{platform_name}%"
+            query = query.filter(Platform.platform_name.ilike(platform_filter))
+        
+        # Handle category name filtering
+        if category_name:
+            category_filter = f"%{category_name}%"
+            query = query.filter(Category.category_name.ilike(category_filter))
         
         if keyword:
             # Search in product name and vendor name
@@ -82,6 +102,9 @@ def get_products():
                 'category_id': category_id,
                 'platform_id': platform_id,
                 'vendor_id': vendor_id,
+                'vendor': vendor_name,
+                'platform': platform_name,
+                'category': category_name,
                 'min_price': min_price,
                 'max_price': max_price,
                 'min_quantity': min_quantity,
