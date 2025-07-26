@@ -95,7 +95,6 @@ def seed_initial_data():
             products = [
                 Product(
                     category_id=fb_category.category_id,
-                    subcategory_id=fb_softreg.id,
                     vendor_id=vendor1.vendor_id,
                     name="FB Accounts | Verified by e-mail, there is no email in the set. Male or female. The account profiles may be empty or have limited entries such as photos and other information. 2FA included. Cookies are included. Accounts are registered in United Kingdom IP.",
                     quantity=345,
@@ -103,7 +102,6 @@ def seed_initial_data():
                 ),
                 Product(
                     category_id=ig_category.category_id,
-                    subcategory_id=ig_softreg.id,
                     vendor_id=vendor2.vendor_id,
                     name="IG Accounts | Verified by email, email NOT included. Male or female. The profiles information is partially filled. 2FA included. UserAgent, cookies included. Registered from USA IP.",
                     quantity=99,
@@ -111,7 +109,6 @@ def seed_initial_data():
                 ),
                 Product(
                     category_id=fb_category.category_id,
-                    subcategory_id=fb_gmail.id,
                     vendor_id=vendor1.vendor_id,
                     name="Gmail Accounts | Verified by SMS, Phone number not included in Profile Security method. There is an additional email address(without a password). Male or female. Registered from different countries IPs.",
                     quantity=115,
@@ -119,7 +116,6 @@ def seed_initial_data():
                 ),
                 Product(
                     category_id=ig_category.category_id,
-                    subcategory_id=ig_gmail.id,
                     vendor_id=vendor2.vendor_id,
                     name="Gmail Accounts | Accounts could be used in some services. The accounts are verified through SMS. There is an additional email address(without a password). Male or female. Registered from different countries IPs.",
                     quantity=404,
@@ -156,3 +152,4 @@ def serve(path):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

@@ -45,3 +45,5 @@ class Product(db.Model):
             'vendor': self.vendor.to_dict() if self.vendor else None
         }
 
+
+

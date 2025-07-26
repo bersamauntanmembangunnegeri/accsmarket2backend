@@ -34,3 +34,5 @@ class Category(db.Model):
             'platform': self.platform.to_dict() if self.platform else None
         }
 
+
+
